@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Production Capacity — Admin</title>
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>Production Capacity — Admin</h1>
+
+    <div class="card toolbar">
+      <button id="refresh" class="btn">Refresh</button>
+      <button id="saveAll" class="btn primary">Save All</button>
+      <span id="msg" class="muted"></span>
+      <span class="spacer"></span>
+    </div>
+
+    <div id="rows"></div>
+  </div>
+
+  <!-- Supabase UMD build (SharePoint-safe) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+  <!-- App logic -->
+  <script src="app.js"></script>
+</body>
+</html>
