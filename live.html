@@ -1,17 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Production Capacity — Live</title>
+  <meta charset="utf-8">
+  <title>Live Test</title>
 </head>
 <body>
 
-  <!-- Your LIVE dashboard markup -->
+<h1>Live page loaded</h1>
+<p>If you can see this, HTML works.</p>
 
-  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script>
-    // Live-only JS (read-only, polling)
-  </script>
+<script>
+  document.body.style.background = "#0f1722";
+  document.body.style.color = "#e7f0f7";
+  document.body.insertAdjacentHTML(
+    "beforeend",
+    "<p>✅ JavaScript executed successfully</p>"
+  );
+  console.log("✅ LIVE JS WORKING");
+</script>
 
 </body>
 </html>
+``
