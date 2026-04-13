@@ -1,57 +1,235 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Production Capacity — Live</title>
+
 <style>
-  body {
-    background:#0f1722;
-    color:#e7f0f7;
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-    margin:20px;
-  }
-  .error {
-    color:#ff4d4f;
-    background:#1a0f12;
-    padding:12px;
-    border-radius:10px;
-  }
+html,body{
+  background:transparent!important;
+  margin:0;padding:0;
+}
+
+:root{
+  --bg:#0f1722;
+  --card:#122030;
+  --ink:#e7f0f7;
+  --muted:#9fb3c8;
+  --green:#18c48f;
+  --amber:#ffbf36;
+  --red:#ff4d4f;
+  --purple:#9b59ff;
+  --shadow:0 6px 18px rgba(0,0,0,.45);
+}
+
+*{box-sizing:border-box}
+
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;
+  padding:16px;
+}
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  margin-bottom:12px;
+}
+
+.title{
+  font-size:20px;
+  font-weight:700;
+}
+
+.legend{
+  display:flex;
+  gap:12px;
+  font-size:12px;
+  color:var(--muted);
+  margin-top:4px;
+}
+
+.legend span::before{
+  content:"";
+  width:8px;height:8px;
+  border-radius:50%;
+  display:inline-block;
+  margin-right:6px;
+  box-shadow:0 0 0 1px #0006 inset;
+}
+.legend .green::before{background:var(--green)}
+.legend .amber::before{background:var(--amber)}
+.legend .red::before{background:var(--red)}
+.legend .purple::before{background:var(--purple)}
+
+.updated{
+  font-size:11px;
+  color:var(--muted);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:12px;
+}
+
+.card{
+  background:linear-gradient(180deg,#18283a,#0f1722);
+  border-radius:14px;
+  padding:12px 14px;
+  box-shadow:var(--shadow);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  transition:box-shadow .25s,border-color .25s;
+}
+
+.label{
+  font-size:11px;
+  letter-spacing:.3px;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+
+.pill{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+  background:#0b121b;
+  border:1px solid #1e2a3a;
+}
+
+.dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  box-shadow:0 0 0 1px #0006 inset,0 0 8px currentColor;
+}
+
+.green{color:var(--green)}
+.amber{color:var(--amber)}
+.red{color:var(--red)}
+.purple{color:var(--purple)}
+
+.flash{
+  animation:pulse .8s ease-out;
+}
+
+@keyframes pulse{
+  40%{box-shadow:0 0 0 8px color-mix(in oklab,currentColor 45%,transparent)}
+}
+.error{
+  background:#1a0e12;
+  color:#ff6b6b;
+  padding:12px;
+  border-radius:10px;
+  margin-top:12px;
+}
 </style>
 </head>
 
 <body>
 
-<h1>Production Capacity – Live</h1>
-<div id="status">Loading…</div>
+<div class="header">
+  <div>
+    <div class="title">Production Capacity</div>
+    <div class="legend">
+      <span class="green">On Track</span>
+      <span class="amber">Watch</span>
+      <span class="red">Critical</span>
+      <span class="purple">Over Capacity</span>
+    </div>
+  </div>
+  <div class="updated" id="updated">Last updated: —</div>
+</div>
 
-<!-- ✅ MUST BE EXACT -->
+<div class="grid" id="grid">
+  <div class="card" data-key="week-1"><div class="label">Today</div><div class="pill"><span class="dot"></span><span></span></div></div>
+  <div class="card" data-key="week0"><div class="label">This Week</div><div class="pill"><span class="dot"></span><span></span></div></div>
+  <div class="card" data-key="week1"><div class="label">Next Week</div><div class="pill"><span class="dot"></span><span></span></div></div>
+  <div class="card" data-key="week2"><div class="label">In 2 Weeks</div><div class="pill"><span class="dot"></span><span></span></div></div>
+  <div class="card" data-key="week3"><div class="label">In 3 Weeks</div><div class="pill"><span class="dot"></span><span></span></div></div>
+</div>
+
+<!-- ✅ Supabase UMD -->
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
 <script>
-try {
-  if (!window.supabase) {
-    throw new Error("Supabase script failed to load");
+const { createClient } = supabase;
+
+const client = createClient(
+  "https://wgpmexqsjacapfyddtfi.supabase.co",
+  "YOUR_ANON_KEY_HERE"
+);
+
+const labels = {
+  green:"On Track",
+  amber:"Watch",
+  red:"Critical",
+  purple:"Over Capacity"
+};
+
+const previous = {};
+
+async function refresh(){
+  const { data, error } = await client
+    .schema("exportal-pc")
+    .from("production_capacity")
+    .select("week_offset, week_label, status, updated_at")
+    .order("week_offset");
+
+  if(error){
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      "<div class='error'>Failed to load capacity data</div>"
+    );
+    console.error(error);
+    return;
   }
 
-  const { createClient } = supabase;
+  let latest = null;
 
-  const client = createClient(
-    "https://wgpmexqsjacapfyddtfi.supabase.co",
-    "YOUR_ANON_KEY_HERE"
-  );
+  data.forEach(r=>{
+    const el = document.querySelector(`[data-key="week${r.week_offset}"]`);
+    if(!el) return;
 
-  document.getElementById("status").textContent =
-    "✅ Supabase loaded successfully";
+    const pill = el.querySelector(".pill");
+    const dot = pill.querySelector(".dot");
+    const text = pill.querySelector("span:last-child");
 
-  console.log("✅ Supabase initialised");
+    pill.className = `pill ${r.status}`;
+    dot.style.color = "currentColor";
+    text.textContent = labels[r.status];
+    el.querySelector(".label").textContent = r.week_label;
 
-} catch (err) {
-  console.error(err);
-  document.body.innerHTML =
-    '<div class="error"><strong>Error:</strong> ' + err.message + '</div>';
+    if(previous[r.week_offset] && previous[r.week_offset] !== r.status){
+      el.classList.add("flash");
+      setTimeout(()=>el.classList.remove("flash"),800);
+    }
+
+    previous[r.week_offset] = r.status;
+
+    const ts = new Date(r.updated_at);
+    latest = latest ? new Date(Math.max(latest, ts)) : ts;
+  });
+
+  if(latest){
+    document.getElementById("updated").textContent =
+      "Last updated: " + latest.toLocaleString();
+  }
 }
+
+refresh();
+setInterval(refresh,30000);
 </script>
 
 </body>
 </html>
+``
